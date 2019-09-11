@@ -5,6 +5,8 @@ languages:
 - nodejs
 products:
 - azure-storage
+- azure
+description: "This sample implements a function triggered by Azure Blob Storage to resize an image in Node.js."
 ---
 
 # Azure Storage Blob Trigger Image Resize Function in Node.js using the v10 SDK

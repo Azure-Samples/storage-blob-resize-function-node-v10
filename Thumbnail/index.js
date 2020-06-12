@@ -1,73 +1,44 @@
-const stream = require('stream');
 const Jimp = require('jimp');
-
+const stream = require('stream');
 const {
-  Aborter,
-  BlobURL,
-  BlockBlobURL,
-  ContainerURL,
-  ServiceURL,
-  SharedKeyCredential,
-  StorageURL,
-  uploadStreamToBlockBlob
+    BlockBlobClient
 } = require("@azure/storage-blob");
 
 const ONE_MEGABYTE = 1024 * 1024;
 const ONE_MINUTE = 60 * 1000;
 const uploadOptions = { bufferSize: 4 * ONE_MEGABYTE, maxBuffers: 20 };
 
+
 const containerName = process.env.BLOB_CONTAINER_NAME;
 const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const accessKey = process.env.AZURE_STORAGE_ACCOUNT_ACCESS_KEY;
+const connectionString = process.env.AZURE_STORAGE_ACCOUNT_CONNECTION_STRING;
+const blobName = "<outBlobName>";
 
-const sharedKeyCredential = new SharedKeyCredential(
-  accountName,
-  accessKey);
-const pipeline = StorageURL.newPipeline(sharedKeyCredential);
-const serviceURL = new ServiceURL(
-  `https://${accountName}.blob.core.windows.net`,
-  pipeline
-);
+module.exports = async function (context, eventGridEvent, inputBlob){
+    context.log(typeof eventGridEvent);
+    context.log(eventGridEvent);
 
-module.exports = (context, eventGridEvent, inputBlob) => {  
+    const widthInPixels = 100;
+    Jimp.read(inputBlob).then((thumbnail) => {
 
-  const aborter = Aborter.timeout(30 * ONE_MINUTE);
-  const widthInPixels = 100;
-  const contentType = context.bindingData.data.contentType;
-  const blobUrl = context.bindingData.data.url;
-  const blobName = blobUrl.slice(blobUrl.lastIndexOf("/")+1);
+        thumbnail.resize(widthInPixels, Jimp.AUTO);
 
-  Jimp.read(inputBlob).then( (thumbnail) => {
+        thumbnail.getBuffer(Jimp.MIME_PNG, async (err, buffer) => {
 
-    thumbnail.resize(widthInPixels, Jimp.AUTO);
+            const readStream = stream.PassThrough();
+            readStream.end(buffer);
 
-    const options = {
-      contentSettings: { contentType: contentType }
-    };
-
-    thumbnail.getBuffer(Jimp.MIME_PNG, async (err, buffer) => {
-
-      const readStream = stream.PassThrough();
-      readStream.end(buffer);
-
-      const containerURL = ContainerURL.fromServiceURL(serviceURL, containerName);
-      const blockBlobURL = BlockBlobURL.fromContainerURL(containerURL, blobName);
-
-      try {   
-
-        await uploadStreamToBlockBlob(aborter, readStream,
-          blockBlobURL, uploadOptions.bufferSize, uploadOptions.maxBuffers,
-          { blobHTTPHeaders: { blobContentType: "image/jpeg" } });
-
-      } catch (err) {
-
-        context.log(err.message);
-
-      } finally {        
-
-        context.done();
-
-      }
+            const blobClient = new BlockBlobClient(connectionString, containerName, blobName);
+            
+            try {
+                await blobClient.uploadStream(readStream,
+                    uploadOptions.bufferSize,
+                    uploadOptions.maxBuffers,
+                    { blobHTTPHeaders: { blobContentType: "image/jpeg" } });
+            } catch (err) {
+                context.log(err.message);
+            }
+        });
     });
-  });
 };

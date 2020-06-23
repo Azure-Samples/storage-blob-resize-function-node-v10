@@ -42,13 +42,14 @@ module.exports = (context, eventGridEvent, inputBlob) => {
   const thumbnailBuffer = await thumbnail.getBufferAsync(Jimp.AUTO);
   const readStream = stream.PassThrough();
   readStream.end(thumbnailBuffer);
+
   const containerURL = ContainerURL.fromServiceURL(serviceURL, containerName);
   const blockBlobURL = BlockBlobURL.fromContainerURL(containerURL, blobName);
   try {
 
     await uploadStreamToBlockBlob(aborter, readStream,
       blockBlobURL, uploadOptions.bufferSize, uploadOptions.maxBuffers,
-      { blobHTTPHeaders: { blobContentType: "image/jpeg" } });
+      { blobHTTPHeaders: { blobContentType: "image/*" } });
 
   } catch (err) {
 

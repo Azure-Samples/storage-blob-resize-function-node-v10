@@ -37,37 +37,26 @@ module.exports = (context, eventGridEvent, inputBlob) => {
   const blobUrl = context.bindingData.data.url;
   const blobName = blobUrl.slice(blobUrl.lastIndexOf("/")+1);
 
-  Jimp.read(inputBlob).then( (thumbnail) => {
+  const image = await Jimp.read(inputBlob);
+  const thumbnail = image.resize(widthInPixels, Jimp.AUTO);
+  const thumbnailBuffer = await thumbnail.getBufferAsync(Jimp.AUTO);
+  const readStream = stream.PassThrough();
+  readStream.end(thumbnailBuffer);
+  const containerURL = ContainerURL.fromServiceURL(serviceURL, containerName);
+  const blockBlobURL = BlockBlobURL.fromContainerURL(containerURL, blobName);
+  try {
 
-    thumbnail.resize(widthInPixels, Jimp.AUTO);
+    await uploadStreamToBlockBlob(aborter, readStream,
+      blockBlobURL, uploadOptions.bufferSize, uploadOptions.maxBuffers,
+      { blobHTTPHeaders: { blobContentType: "image/jpeg" } });
 
-    const options = {
-      contentSettings: { contentType: contentType }
-    };
+  } catch (err) {
 
-    thumbnail.getBuffer(Jimp.MIME_PNG, async (err, buffer) => {
+    context.log(err.message);
 
-      const readStream = stream.PassThrough();
-      readStream.end(buffer);
+  } finally {
 
-      const containerURL = ContainerURL.fromServiceURL(serviceURL, containerName);
-      const blockBlobURL = BlockBlobURL.fromContainerURL(containerURL, blobName);
+    context.done();
 
-      try {   
-
-        await uploadStreamToBlockBlob(aborter, readStream,
-          blockBlobURL, uploadOptions.bufferSize, uploadOptions.maxBuffers,
-          { blobHTTPHeaders: { blobContentType: "image/jpeg" } });
-
-      } catch (err) {
-
-        context.log(err.message);
-
-      } finally {        
-
-        context.done();
-
-      }
-    });
-  });
+  }
 };

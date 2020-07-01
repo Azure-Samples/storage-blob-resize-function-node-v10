@@ -15,6 +15,8 @@ This sample implements a function triggered by Azure Blob Storage to resize an i
 
 The key aspects of this sample are in the function bindings and implementation.
 
+This sample is used by the topic [Tutorial: Automate resizing uploaded images using Event Grid](https://docs.microsoft.com/en-us/azure/event-grid/resize-images-on-storage-blob-upload-event?tabs=nodejsv10#deploy-the-function-code/)
+
 ## Function bindings
 
 In order to interface with image data, you need to configure the function to process binary data.

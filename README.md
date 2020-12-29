@@ -15,6 +15,8 @@ This sample implements a function triggered by Azure Blob Storage to resize an i
 
 The key aspects of this sample are in the function bindings and implementation.
 
+This sample is used by the topic [Tutorial: Automate resizing uploaded images using Event Grid](https://docs.microsoft.com/en-us/azure/event-grid/resize-images-on-storage-blob-upload-event?tabs=nodejsv10#deploy-the-function-code/)
+
 ## Function bindings
 
 In order to interface with image data, you need to configure the function to process binary data.
@@ -86,38 +88,29 @@ module.exports = (context, eventGridEvent, inputBlob) => {
   const blobUrl = context.bindingData.data.url;
   const blobName = blobUrl.slice(blobUrl.lastIndexOf("/")+1);
 
-  Jimp.read(inputBlob).then( (thumbnail) => {
+  const image = await Jimp.read(inputBlob);
+  const thumbnail = image.resize(widthInPixels, Jimp.AUTO);
+  const thumbnailBuffer = await thumbnail.getBufferAsync(Jimp.AUTO);
+  const readStream = stream.PassThrough();
+  readStream.end(thumbnailBuffer);
 
-    thumbnail.resize(widthInPixels, Jimp.AUTO);
+  const containerURL = ContainerURL.fromServiceURL(serviceURL, containerName);
+  const blockBlobURL = BlockBlobURL.fromContainerURL(containerURL, blobName);
+  try {
 
-    const options = {
-      contentSettings: { contentType: contentType }
-    };
+    await uploadStreamToBlockBlob(aborter, readStream,
+      blockBlobURL, uploadOptions.bufferSize, uploadOptions.maxBuffers,
+      { blobHTTPHeaders: { blobContentType: "image/*" } });
 
-    thumbnail.getBuffer(Jimp.MIME_PNG, async (err, buffer) => {
+  } catch (err) {
 
-      const readStream = stream.PassThrough();
-      readStream.end(buffer);
+    context.log(err.message);
 
-      const containerURL = ContainerURL.fromServiceURL(serviceURL, containerName);
-      const blockBlobURL = BlockBlobURL.fromContainerURL(containerURL, blobName);
+  } finally {
 
-      try {   
+    context.done();
 
-        await uploadStreamToBlockBlob(aborter, readStream,
-          blockBlobURL, uploadOptions.bufferSize, uploadOptions.maxBuffers); 
-
-      } catch (err) {
-
-        context.log(err.message);
-
-      } finally {        
-
-        context.done();
-
-      }
-    });
-  });
+  }
 };
 ```
 

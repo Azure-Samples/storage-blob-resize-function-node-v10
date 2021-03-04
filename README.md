@@ -17,6 +17,8 @@ The key aspects of this sample are in the function bindings and implementation.
 
 This sample is used by the topic [Tutorial: Automate resizing uploaded images using Event Grid](https://docs.microsoft.com/en-us/azure/event-grid/resize-images-on-storage-blob-upload-event?tabs=nodejsv10#deploy-the-function-code/)
 
+## This sample already updated in [Storage SDK Samples](https://github.com/Azure/azure-sdk-for-js/tree/master/sdk/storage/storage-blob/samples/storage-blob-resize-function).
+
 ## Function bindings
 
 In order to interface with image data, you need to configure the function to process binary data.

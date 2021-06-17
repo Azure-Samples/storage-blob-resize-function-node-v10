@@ -11,6 +11,8 @@ description: "This sample implements a function triggered by Azure Blob Storage 
 
 # Azure Storage Blob Trigger Image Resize Function in Node.js using the v10 SDK
 
+> IMPORTANT! This sample uses the version 10 of the Storage Blob SDK. Please refer to the sample [storage-blob-resize-function](https://github.com/Azure-Samples/storage-blob-resize-function-node) that uses the latest version of the Storage Blob SDK instead.
+
 This sample implements a function triggered by Azure Blob Storage to resize an image in Node.js. Once the image is resized, the thumbnail image is uploaded back to blob storage.
 
 The key aspects of this sample are in the function bindings and implementation.
